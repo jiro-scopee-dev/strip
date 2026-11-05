@@ -4,7 +4,7 @@
 
 **Every photo carries a receipt. strip removes it in bulk, then writes a new one from a camera you choose — entirely in your browser.**
 
-[Open the cleaner](airemover.html) · [Landing page](hero.html) · [Terms & privacy](legal.html)
+[Open the cleaner](airemover.html) · [Landing page](index.html) · [Terms & privacy](legal.html)
 
 No install. No account. No upload. Three static files and vanilla JavaScript.
 
@@ -103,7 +103,7 @@ Download or clone the repository, then open `airemover.html` in a browser. That'
 | File | What it is |
 |---|---|
 | `airemover.html` | The tool |
-| `hero.html` | Landing hero |
+| `index.html` | Landing hero |
 | `legal.html` | Terms and privacy |
 | `DESIGN.md` | The visual system, for future edits |
 | `AGENTS.md` | Repo note for agents |

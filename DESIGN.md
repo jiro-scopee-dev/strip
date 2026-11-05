@@ -4,7 +4,7 @@ Source of truth: `airemover.html`. If this file and the CSS disagree, the CSS wi
 
 ## What this is
 
-A standalone image metadata tool. Vanilla HTML, CSS and JS in two files: `airemover.html` (the app) and `hero.html` (landing hero). No build, no framework, no Tailwind. Every file duplicates the same tokens in its own `:root`.
+A standalone image metadata tool. Vanilla HTML, CSS and JS in three files: `index.html` (landing hero), `airemover.html` (the app) and `legal.html` (terms and privacy). No build, no framework, no Tailwind. Every file duplicates the same tokens in its own `:root`.
 
 ## Design thesis
 
@@ -151,7 +151,7 @@ Direct, lowercase, no exclamation marks, no "Oops". Status text describes the fa
 
 Single column, `max-width: 560px`, one task. Header, drop zone, queue, controls, log, in that order. This is the surface the tokens above were drawn from.
 
-### `hero.html` — landing hero (Persuade)
+### `index.html` — landing hero (Persuade)
 
 Same world, wider canvas. It does not introduce new tokens.
 
@@ -170,7 +170,7 @@ The hero never runs a load animation. State, not theatre.
 
 Same tokens, no cards. Single column, `max-width: 720px`, paragraphs capped at `68ch`, `15px/1.7` in `--text-dim`, `h1` display size, `h2` at `26–32px`, mono `h3` section labels. A jump nav sits between two hairlines. `section` elements carry `scroll-margin-top` so anchors don't tuck under the top edge.
 
-Both `airemover.html` and `hero.html` end with links to `legal.html#privacy` and `legal.html#terms`: mono 10px uppercase, `--text-muted`, lime on hover. On the tool they sit in a centred `.legal-links` footer; on the hero they join the ticker's right side.
+Both `airemover.html` and `index.html` end with links to `legal.html#privacy` and `legal.html#terms`: mono 10px uppercase, `--text-muted`, lime on hover. On the tool they sit in a centred `.legal-links` footer; on the hero they join the ticker's right side.
 
 ## Changing the design
 
