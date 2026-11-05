@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<!-- made by Noob -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0b">
+<meta name="description" content="Strip AI metadata from images and write a camera profile, entirely in your browser.">
+<title>strip — bulk metadata cleaner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --panel: #101012;
+    --panel-raised: #17171a;
+    --border: rgba(255, 255, 255, 0.085);
+    --border-strong: rgba(255, 255, 255, 0.17);
+    --text: #f3f3ee;
+    --text-dim: #a3a39b;
+    --text-muted: #77776f;
+    --accent: #d7ff4f;
+    --accent-soft: rgba(215, 255, 79, 0.12);
+    --danger: #ff6b6b;
+    --danger-soft: rgba(255, 107, 107, 0.12);
+    --warn: #ffb84d;
+    --warn-soft: rgba(255, 184, 77, 0.12);
+    --radius: 18px;
+    --radius-sm: 12px;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+
+  html, body { margin: 0; }
+
+  body {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding:
+      max(32px, env(safe-area-inset-top))
+      max(20px, env(safe-area-inset-right))
+      max(48px, env(safe-area-inset-bottom))
+      max(20px, env(safe-area-inset-left));
+    background:
+      radial-gradient(900px 520px at 50% -12%, rgba(215, 255, 79, 0.11), transparent 62%),
+      radial-gradient(700px 480px at 110% 105%, rgba(215, 255, 79, 0.05), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Fixed grain breaks the flat vector look without loading an image. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  ::selection { background: var(--accent); color: #0a0a0b; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border: 3px solid var(--bg);
+    border-radius: 99px;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  header {
+    text-align: left;
+    margin: 4px 0 2px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.18s ease;
+  }
+  .back:hover { color: var(--accent); text-decoration: none; }
+  .back svg { width: 12px; height: 12px; }
+  h1 {
+    margin: 0;
+    font-size: clamp(56px, 16vw, 84px);
+    font-weight: 700;
+    line-height: 0.88;
+    letter-spacing: -0.06em;
+  }
+  .dot { color: var(--accent); }
+  .subtitle {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 16px 0 0;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 400;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .subtitle::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .card {
+    background: linear-gradient(180deg, var(--panel-raised), var(--panel));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  /* Empty state / picker */
+  .drop-zone {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 44px 24px;
+    font: inherit;
+    color: inherit;
+    text-align: center;
+    cursor: pointer;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent), var(--panel);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+    transition: border-color 0.18s ease, background-color 0.18s ease;
+  }
+  .drop-zone:hover, .drop-zone.active {
+    border-color: var(--accent);
+    border-style: solid;
+    background: rgba(215, 255, 79, 0.05);
+  }
+  .drop-icon { width: 30px; height: 30px; color: var(--accent); opacity: 0.85; }
+  .drop-text { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+  .drop-hint {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Once a queue exists the picker recedes to a single add-more row */
+  .drop-zone.compact {
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px;
+    border-radius: var(--radius-sm);
+  }
+  .drop-zone.compact .drop-icon { width: 18px; height: 18px; }
+  .drop-zone.compact .drop-text { font-size: 14px; }
+  .drop-zone.compact .drop-hint { display: none; }
+  .reassure {
+    margin: -2px 0 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .input-group { display: flex; width: 100%; }
+  input[type="file"] { display: none; }
+
+  .btn-secondary {
+    flex: 1;
+    min-height: 48px;
+    padding: 0 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    color: var(--text-dim);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.1s ease;
+  }
+  .btn-secondary:hover { background: #1e1e22; border-color: var(--border-strong); color: var(--text); }
+  .btn-secondary:active { transform: scale(0.985); }
+
+  /* Section headings */
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .section-label {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .section-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Queue */
+  .file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+  .file-item:hover { border-color: var(--border); background: rgba(255, 255, 255, 0.04); }
+  .thumb-wrap {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg);
+    border: 1px solid var(--border);
+  }
+  .thumb-wrap img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .file-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+  .file-name {
+    max-width: 100%;
+    font-size: 13.5px;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Verdict badge: the loud element in an otherwise quiet row */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .badge::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .file-item.flagged .badge,
+  .file-item.error .badge { background: var(--danger-soft); color: var(--danger); }
+  .file-item.ambiguous .badge,
+  .file-item.processing .badge { background: var(--warn-soft); color: var(--warn); }
+  .file-item.done .badge { background: var(--accent-soft); color: var(--accent); }
+  .file-item.processing .badge::before { animation: pulse 1s ease-in-out infinite alternate; }
+
+  @keyframes pulse { from { opacity: 0.35; } to { opacity: 1; } }
+
+  /* Progress */
+  .progress-wrap { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+  .progress-bar {
+    height: 6px;
+    border-radius: 99px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 100%;
+    transform: scaleX(0);
+    transform-origin: left;
+    border-radius: inherit;
+    background: var(--accent);
+    box-shadow: 0 0 12px rgba(215, 255, 79, 0.45);
+    transition: transform 0.25s ease-out;
+  }
+  .progress-text {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Controls */
+  .controls { display: flex; flex-direction: column; gap: 14px; }
+  .select-wrapper { position: relative; }
+  select {
+    width: 100%;
+    min-height: 50px;
+    padding: 0 42px 0 16px;
+    appearance: none;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background-color 0.18s ease;
+  }
+  select:hover { border-color: var(--border-strong); background: #1b1b1f; }
+  .select-wrapper svg {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  .btn-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 50px;
+    padding: 0 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--panel-raised);
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.005em;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.1s ease, filter 0.18s ease;
+  }
+  .btn-action:hover:not(:disabled) { background: #1e1e22; border-color: var(--border-strong); }
+  .btn-action:active:not(:disabled) { transform: scale(0.985); }
+  .btn-action:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-action.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0a0a0b;
+  }
+  .btn-action.primary:hover:not(:disabled) { background: #e3ff7a; border-color: #e3ff7a; filter: none; }
+  .download-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .download-row .btn-action { flex: 1; min-width: 180px; }
+  .btn-reset {
+    min-height: 40px;
+    background: transparent;
+    border-color: transparent;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .btn-reset:hover:not(:disabled) { background: rgba(255, 255, 255, 0.05); border-color: transparent; color: var(--text); }
+
+  /* Log */
+  .log {
+    display: none;
+    max-height: 160px;
+    overflow-y: auto;
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.3);
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--text-muted);
+  }
+  .log.show { display: block; }
+  .log-line.success { color: var(--accent); }
+  .log-line.warn { color: var(--warn); }
+  .log-line.error { color: var(--danger); }
+
+  .legal-links {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin-top: 2px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .legal-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.18s ease;
+  }
+  .legal-links a:hover { color: var(--accent); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  #canvas { display: none; }
+</style>
+</head>
+<body>
+
+<main class="app">
+  <header>
+    <a class="back" href="hero.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+      Back to hero
+    </a>
+    <h1>strip<span class="dot">.</span></h1>
+    <p class="subtitle">Bulk metadata cleaner &amp; camera spoofer</p>
+  </header>
+
+  <button class="drop-zone" id="drop" type="button">
+    <svg class="drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="3"/>
+      <circle cx="9" cy="9" r="1.6"/>
+      <path d="m21 15-4.5-4.5L6 21"/>
+    </svg>
+    <span class="drop-text">Choose images</span>
+    <span class="drop-hint">or drop files here</span>
+  </button>
+  <input type="file" id="file" accept="image/*" multiple>
+  <input type="file" id="fileCam" accept="image/*" capture="environment">
+
+  <div class="input-group">
+    <button class="btn-secondary" id="pickCamera" type="button">Take photo</button>
+  </div>
+
+  <p class="reassure">Scanned first. Processed on this device — nothing is uploaded.</p>
+
+  <section class="card" id="queueCard" hidden>
+    <div class="section-head">
+      <h2 class="section-label">Queue</h2>
+      <span class="section-count" id="queueCount">0</span>
+    </div>
+    <div class="file-list" id="fileList"></div>
+    <div class="progress-wrap" id="progressWrap" role="progressbar" aria-label="Processing progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText"></div>
+    </div>
+  </section>
+
+  <section class="card controls" id="controls" hidden>
+    <label class="section-label" for="deviceSelect">Camera profile</label>
+    <div class="select-wrapper">
+      <select id="deviceSelect">
+        <option value="iphone">Apple iPhone 15 Pro Max</option>
+        <option value="samsung">Samsung Galaxy S24 Ultra</option>
+        <option value="pixel">Google Pixel 8 Pro</option>
+        <option value="sony">Sony a7R V</option>
+        <option value="canon">Canon EOS R5</option>
+        <option value="nikon">Nikon Z8</option>
+        <option value="hasselblad">Hasselblad X2D 100C</option>
+      </select>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    <div class="download-row" id="downloadRow" hidden>
+      <button class="btn-action primary" id="saveFolder" type="button">Save to folder</button>
+      <button class="btn-action" id="downloadEach" type="button">Download each file</button>
+    </div>
+    <button class="btn-action primary" id="processAll" type="button">Process files</button>
+    <button class="btn-action btn-reset" id="reset" type="button">Clear all</button>
+  </section>
+
+  <div class="log" id="log" role="status" aria-live="polite"></div>
+
+  <footer class="legal-links">
+    <a href="legal.html#privacy">Privacy</a>
+    <a href="legal.html#terms">Terms</a>
+  </footer>
+
+  <noscript><p class="reassure">This tool needs JavaScript to run.</p></noscript>
+</main>
+
+<canvas id="canvas"></canvas>
+
+<script>
+(() => {
+  'use strict';
+
+  const $ = id => document.getElementById(id);
+  const drop = $('drop'), file = $('file'), fileCam = $('fileCam');
+  const logEl = $('log'), canvas = $('canvas');
+  const queueCard = $('queueCard'), fileList = $('fileList'), queueCount = $('queueCount');
+  const progressWrap = $('progressWrap'), progressFill = $('progressFill'), progressText = $('progressText');
+  const controls = $('controls'), deviceSelect = $('deviceSelect');
+  const processAllBtn = $('processAll'), resetBtn = $('reset');
+  const pickCamera = $('pickCamera');
+  const downloadRow = $('downloadRow'), saveFolderBtn = $('saveFolder'), downloadEachBtn = $('downloadEach');
+
+  const rows = new Map(); // item id -> { row, badge }
+  let queue = [];         // { id, key, file, name, status, thumbUrl, verdict, cleanJpeg }
+  let processing = false;
+  let saving = false;
+
+  const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+  const outName = item => `${item.name.replace(/\.[^.]+$/, '')}-${deviceSelect.value}.jpg`;
+
+  function log(text, cls = '') {
+    const line = document.createElement('div');
+    line.className = 'log-line ' + cls;
+    line.textContent = text;
+    logEl.appendChild(line);
+    logEl.classList.add('show');
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function clearLog() {
+    logEl.replaceChildren();
+    logEl.classList.remove('show');
+  }
+
+  const AI_TOOL_SIGNATURES = ['stable diffusion','stablediffusion','automatic1111','a1111','comfyui','forge webui','midjourney','dall-e','dall·e','openai','chatgpt','gpt-4','gpt-3','adobe firefly','firefly','generative fill','photoshop 2','leonardo.ai','leonardo','playground ai','playgroundai','runway','runwayml','pika','kaiber','synthesia','invideo','novelai','nai diffusion','krita ai','invoke ai','invokeai','dreamstudio','stability ai','stabilityai','ideogram','flux.1','black forest labs','recraft','luma','dream machine','hailuo','pixverse','kling'];
+  // Heuristic metadata-string labels, not watermark detection: an invisible
+  // SynthID mark never shows up as text, so this cannot prove a tool.
+  const AI_TOOL_LABELS = [
+    ['ChatGPT', ['openai', 'chatgpt', 'gpt-4', 'gpt-3', 'dall-e', 'dall·e']],
+    ['Claude', ['anthropic', 'claude']],
+    ['Gemini', ['gemini', 'imagen', 'synthid']],
+    ['Midjourney', ['midjourney']],
+    ['Stable Diffusion', ['stable diffusion', 'stablediffusion', 'automatic1111', 'a1111', 'comfyui', 'forge webui', 'invoke ai', 'invokeai', 'novelai', 'nai diffusion']],
+    ['Firefly', ['adobe firefly', 'firefly', 'generative fill']],
+    ['Flux', ['flux.1', 'black forest labs']],
+    ['Leonardo', ['leonardo.ai', 'leonardo']],
+    ['Runway', ['runway', 'runwayml']],
+    ['Ideogram', ['ideogram']],
+    ['Recraft', ['recraft']],
+    ['Luma', ['luma', 'dream machine']],
+    ['Kling', ['kling']],
+    ['Pika', ['pika']],
+    ['Playground', ['playground ai', 'playgroundai']]
+  ];
+  const C2PA_MARKERS = ['c2pa','jumb','contentcredentials','content credentials','urn:iso:std:iso:ts:21496'];
+  const SOURCE_TYPE_MARKERS = ['trainedalgorithmicmedia','compositewithtrainedalgorithmicmedia','algorithmicmedia','digitalsourcetype','softwareagent'];
+  const PROMPT_BLOCK_MARKERS = ['parameters','negative prompt','steps:','sampler:','cfg scale:','seed:','model hash:','workflow:{'];
+
+  const PROFILES = {
+    hasselblad: { make: "Hasselblad", model: "X2D 100C", software: "Adobe Photoshop Lightroom Classic 13.2 (Macintosh)", iso: 64, exposure: "1/250", aperture: "f/2.5" },
+    iphone: { make: "Apple", model: "iPhone 15 Pro Max", software: "17.4.1", iso: 50, exposure: "1/120", aperture: "f/1.78" },
+    samsung: { make: "Samsung", model: "SM-S928B", software: "S928BXXU1AXBA", iso: 40, exposure: "1/60", aperture: "f/1.7" },
+    pixel: { make: "Google", model: "Pixel 8 Pro", software: "HDR+ 1.0.621918735zd", iso: 45, exposure: "1/100", aperture: "f/1.68" },
+    sony: { make: "Sony", model: "ILCE-7RM5", software: "Adobe Photoshop Lightroom Classic 13.1", iso: 100, exposure: "1/500", aperture: "f/4.0" },
+    canon: { make: "Canon", model: "Canon EOS R5", software: "Digital Photo Professional 4.17.20", iso: 200, exposure: "1/800", aperture: "f/2.8" },
+    nikon: { make: "Nikon", model: "NIKON Z 8", software: "Ver.02.10", iso: 100, exposure: "1/400", aperture: "f/5.6" }
+  };
+
+  function checkLikeIG(bytes) {
+    const text = new TextDecoder('latin1').decode(bytes);
+    const lower = text.toLowerCase();
+    const has = marker => lower.includes(marker);
+
+    const hasExif = lower.includes('exif');
+    const cameraTag = /<xmp:CreateDate|<exif:Make|<exif:Model|canon|nikon|sony|fujifilm|leica|apple|samsung|google pixel|hasselblad/i.test(text);
+    const tool = AI_TOOL_LABELS.find(([, markers]) => markers.some(has));
+    const hasC2PA = C2PA_MARKERS.some(has);
+    const hasSourceType = SOURCE_TYPE_MARKERS.some(has);
+    const hasPrompt = PROMPT_BLOCK_MARKERS.some(has);
+    const isCleanNoExif = !hasExif
+      && !hasC2PA
+      && !hasSourceType
+      && !tool
+      && !AI_TOOL_SIGNATURES.some(has);
+
+    if (tool) return { level: 'flagged', label: tool[0] };
+    if (hasC2PA) return { level: 'flagged', label: 'C2PA' };
+    if (hasSourceType) return { level: 'flagged', label: 'AI source' };
+    if (AI_TOOL_SIGNATURES.some(has)) return { level: 'flagged', label: 'AI signature' };
+    if (hasPrompt) return { level: 'flagged', label: 'AI prompt' };
+    if (!cameraTag && !isCleanNoExif) return { level: 'ambiguous', label: 'Ambiguous' };
+    return { level: 'clean', label: 'Clean' };
+  }
+
+  // IFD0 with ASCII strings + SHORT values. Entries are sorted by tag, which
+  // strict EXIF readers require.
+  function buildEXIF(profile) {
+    const dateTime = "2024:05:14 14:32:11\0";
+    const strings = [
+      [0x010F, profile.make + "\0"],
+      [0x0110, profile.model + "\0"],
+      [0x0131, profile.software + "\0"],
+      [0x0132, dateTime],
+      [0x829A, profile.exposure + "\0"],
+      [0x829D, profile.aperture + "\0"],
+      // shortcut: lives in IFD0 instead of the Exif sub-IFD; some strict readers ignore it.
+      [0x9003, dateTime]
+    ];
+    const shorts = [
+      [0x8827, profile.iso],
+      [0xA002, 4000],
+      [0xA003, 3000]
+    ];
+    const count = strings.length + shorts.length;
+    let dataOffset = 8 + 2 + count * 12 + 4;
+
+    const entries = [];
+    const blobs = [];
+
+    for (const [tag, value] of strings) {
+      const entry = new Uint8Array(12);
+      const dv = new DataView(entry.buffer);
+      dv.setUint16(0, tag, true);
+      dv.setUint16(2, 2, true); // ASCII
+      dv.setUint32(4, value.length, true);
+      if (value.length <= 4) {
+        for (let i = 0; i < value.length; i++) entry[8 + i] = value.charCodeAt(i);
+      } else {
+        dv.setUint32(8, dataOffset, true);
+        const bytes = new Uint8Array(value.length);
+        for (let i = 0; i < value.length; i++) bytes[i] = value.charCodeAt(i);
+        blobs.push(bytes);
+        dataOffset += bytes.length;
+      }
+      entries.push([tag, entry]);
+    }
+
+    for (const [tag, value] of shorts) {
+      const entry = new Uint8Array(12);
+      const dv = new DataView(entry.buffer);
+      dv.setUint16(0, tag, true);
+      dv.setUint16(2, 3, true); // SHORT
+      dv.setUint32(4, 1, true);
+      dv.setUint16(8, value, true);
+      entries.push([tag, entry]);
+    }
+
+    entries.sort((a, b) => a[0] - b[0]);
+
+    const tiff = new Uint8Array(8);
+    const tdv = new DataView(tiff.buffer);
+    tdv.setUint16(0, 0x4949, false); // little-endian
+    tdv.setUint16(2, 42, true);
+    tdv.setUint32(4, 8, true);
+
+    const ifd = new Uint8Array(2 + count * 12 + 4);
+    const idv = new DataView(ifd.buffer);
+    idv.setUint16(0, count, true);
+    entries.forEach(([, entry], i) => ifd.set(entry, 2 + i * 12));
+    idv.setUint32(2 + count * 12, 0, true); // no next IFD
+
+    const out = new Uint8Array(tiff.length + ifd.length + blobs.reduce((n, b) => n + b.length, 0));
+    out.set(tiff, 0);
+    out.set(ifd, tiff.length);
+    let ptr = tiff.length + ifd.length;
+    for (const blob of blobs) {
+      out.set(blob, ptr);
+      ptr += blob.length;
+    }
+
+    const header = "Exif\0\0";
+    const app1 = new Uint8Array(4 + header.length + out.length);
+    const adv = new DataView(app1.buffer);
+    adv.setUint16(0, 0xFFE1, false);
+    adv.setUint16(2, 2 + header.length + out.length, false);
+    for (let i = 0; i < header.length; i++) app1[4 + i] = header.charCodeAt(i);
+    app1.set(out, 4 + header.length);
+    return app1;
+  }
+
+  async function injectExif(jpegBlob, profileKey) {
+    const bytes = new Uint8Array(await jpegBlob.arrayBuffer());
+    if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) throw new Error('not a jpeg');
+    const exif = buildEXIF(PROFILES[profileKey] || PROFILES.iphone);
+    const out = new Uint8Array(bytes.length + exif.length);
+    out.set(bytes.subarray(0, 2), 0);
+    out.set(exif, 2);
+    out.set(bytes.subarray(2), 2 + exif.length);
+    return new Blob([out], { type: 'image/jpeg' });
+  }
+
+  function decodeImage(fileObj) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(fileObj);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('decode error')); };
+      img.src = url;
+    });
+  }
+
+  async function makeThumb(fileObj) {
+    try {
+      const img = await decodeImage(fileObj);
+      const scale = Math.min(80 / img.width, 80 / img.height, 1);
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.width * scale));
+      c.height = Math.max(1, Math.round(img.height * scale));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      return c.toDataURL('image/jpeg', 0.8);
+    } catch {
+      return '';
+    }
+  }
+
+  function statusFor(item) {
+    if (item.status === 'done') return ['done', 'Spoofed'];
+    if (item.status === 'processing') return ['processing', 'Processing'];
+    if (item.status === 'error') return ['error', 'Failed'];
+    return [item.verdict.level, item.verdict.label];
+  }
+
+  function createRow(item) {
+    const row = document.createElement('div');
+    const thumb = document.createElement('div');
+    thumb.className = 'thumb-wrap';
+    if (item.thumbUrl) {
+      const img = document.createElement('img');
+      img.src = item.thumbUrl;
+      img.alt = '';
+      thumb.appendChild(img);
+    }
+
+    const info = document.createElement('div');
+    info.className = 'file-info';
+    const name = document.createElement('span');
+    name.className = 'file-name';
+    name.textContent = item.name;
+    name.title = item.name;
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    info.append(name, badge);
+
+    row.append(thumb, info);
+    return { row, badge };
+  }
+
+  function render() {
+    const total = queue.length;
+    drop.classList.toggle('compact', total > 0);
+    queueCard.hidden = total === 0;
+    controls.hidden = total === 0;
+
+    if (total === 0) {
+      fileList.replaceChildren();
+      rows.clear();
+      downloadRow.hidden = true;
+      return;
+    }
+
+    queueCount.textContent = total;
+
+    let done = 0;
+    let pending = 0;
+    for (const item of queue) {
+      let entry = rows.get(item.id);
+      if (!entry) {
+        entry = createRow(item);
+        rows.set(item.id, entry);
+        fileList.appendChild(entry.row);
+      }
+      const [state, label] = statusFor(item);
+      if (entry.row.dataset.state !== state) {
+        entry.row.className = 'file-item ' + state;
+        entry.row.dataset.state = state;
+        entry.badge.textContent = label;
+      }
+      if (item.status === 'done') done++;
+      if (item.status === 'pending') pending++;
+    }
+
+    const pct = Math.round((done / total) * 100);
+    progressFill.style.transform = `scaleX(${done / total})`;
+    progressText.textContent = `${done} of ${plural(total, 'file')} spoofed`;
+    progressWrap.setAttribute('aria-valuenow', pct);
+
+    downloadRow.hidden = done === 0 || processing;
+    saveFolderBtn.hidden = typeof window.showDirectoryPicker !== 'function';
+
+    if (processing) {
+      processAllBtn.textContent = 'Processing…';
+    } else if (pending > 0) {
+      processAllBtn.textContent = `Process ${plural(pending, 'file')}`;
+    } else if (done > 0) {
+      processAllBtn.textContent = 'Download ZIP';
+    } else {
+      processAllBtn.textContent = 'Retry';
+    }
+  }
+
+  async function handleFiles(fileList) {
+    const all = Array.from(fileList);
+    const isImage = f => f.type
+      ? f.type.startsWith('image/')
+      : /\.(jpe?g|png|webp|gif|bmp|heic|heif|avif|tiff?)$/i.test(f.name);
+    const images = all.filter(isImage);
+    const skipped = all.length - images.length;
+
+    const seen = new Set(queue.map(q => q.key));
+    let added = 0;
+    let duplicates = 0;
+
+    for (const f of images) {
+      const key = `${f.name}:${f.size}:${f.lastModified}`;
+      if (seen.has(key)) { duplicates++; continue; }
+      seen.add(key);
+
+      let verdict;
+      try {
+        verdict = checkLikeIG(new Uint8Array(await f.arrayBuffer()));
+      } catch {
+        verdict = { level: 'ambiguous', label: 'Unreadable' };
+      }
+
+      queue.push({
+        id: Math.random().toString(36).slice(2, 11),
+        key,
+        file: f,
+        name: f.name,
+        status: 'pending',
+        thumbUrl: await makeThumb(f),
+        verdict,
+        cleanJpeg: null
+      });
+      added++;
+    }
+
+    clearLog();
+    if (added) log(`Added ${plural(added, 'file')}.`);
+    if (duplicates) log(`Skipped ${plural(duplicates, 'duplicate')}.`, 'warn');
+    if (skipped) log(`Skipped ${plural(skipped, 'non-image file')}.`, 'warn');
+    render();
+  }
+
+  async function processQueue() {
+    if (processing) return;
+    const pending = queue.filter(q => q.status === 'pending');
+    if (!pending.length) return;
+
+    processing = true;
+    processAllBtn.disabled = true;
+    resetBtn.disabled = true;
+    const targetProfile = deviceSelect.value;
+    log(`Processing ${plural(pending.length, 'file')} with the ${PROFILES[targetProfile].model} profile.`);
+
+    for (const item of queue) {
+      if (item.status !== 'pending') continue;
+
+      item.status = 'processing';
+      render();
+
+      try {
+        const img = await decodeImage(item.file);
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        const tempJpeg = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95));
+        if (!tempJpeg) throw new Error('could not encode this image');
+        item.cleanJpeg = await injectExif(tempJpeg, targetProfile);
+        item.status = 'done';
+        log(`Spoofed ${item.name}`, 'success');
+      } catch (e) {
+        item.status = 'error';
+        const reason = e.message === 'decode error' ? 'could not read this image' : e.message;
+        log(`Failed ${item.name} — ${reason}`, 'error');
+      }
+
+      render();
+    }
+
+    processing = false;
+    processAllBtn.disabled = false;
+    resetBtn.disabled = false;
+    render();
+  }
+
+  async function downloadZip() {
+    const done = queue.filter(q => q.status === 'done' && q.cleanJpeg);
+    if (!done.length) {
+      log('Nothing to download yet.', 'warn');
+      return;
+    }
+    if (typeof JSZip === 'undefined') {
+      log('The ZIP library did not load. Check your connection and reload.', 'error');
+      return;
+    }
+
+    processAllBtn.disabled = true;
+    processAllBtn.textContent = 'Zipping…';
+
+    try {
+      const zip = new JSZip();
+      for (const item of done) {
+        zip.file(outName(item), item.cleanJpeg);
+      }
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `strip-bulk-${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      log(`Downloaded ${plural(done.length, 'file')} as a ZIP.`, 'success');
+    } catch (e) {
+      log(`Could not build the ZIP — ${e.message}`, 'error');
+    }
+
+    processAllBtn.disabled = false;
+    render();
+  }
+
+  // Writes straight to a folder the user picks, so no archive is ever downloaded.
+  async function saveToFolder() {
+    if (saving) return;
+    const done = queue.filter(q => q.status === 'done' && q.cleanJpeg);
+    if (!done.length) {
+      log('Nothing to save yet.', 'warn');
+      return;
+    }
+
+    let dir;
+    try {
+      dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+    } catch (e) {
+      if (e.name !== 'AbortError') log(`Could not open the folder — ${e.message}`, 'error');
+      return;
+    }
+
+    saving = true;
+    saveFolderBtn.disabled = true;
+    downloadEachBtn.disabled = true;
+    let saved = 0;
+
+    for (const item of done) {
+      try {
+        const handle = await dir.getFileHandle(outName(item), { create: true });
+        const writable = await handle.createWritable();
+        await writable.write(item.cleanJpeg);
+        await writable.close();
+        saved++;
+      } catch (e) {
+        log(`Could not save ${item.name} — ${e.message}`, 'error');
+      }
+    }
+
+    saving = false;
+    saveFolderBtn.disabled = false;
+    downloadEachBtn.disabled = false;
+    log(`Saved ${plural(saved, 'file')} to the chosen folder.`, 'success');
+  }
+
+  async function downloadEach() {
+    if (saving) return;
+    const done = queue.filter(q => q.status === 'done' && q.cleanJpeg);
+    if (!done.length) {
+      log('Nothing to download yet.', 'warn');
+      return;
+    }
+
+    saving = true;
+    saveFolderBtn.disabled = true;
+    downloadEachBtn.disabled = true;
+    if (done.length > 1) log('If the browser asks to allow multiple downloads, choose allow.', 'warn');
+
+    for (const item of done) {
+      const url = URL.createObjectURL(item.cleanJpeg);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = outName(item);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      await new Promise(res => setTimeout(res, 300));
+    }
+
+    saving = false;
+    saveFolderBtn.disabled = false;
+    downloadEachBtn.disabled = false;
+    log(`Started ${plural(done.length, 'download')}.`, 'success');
+  }
+
+  // ----- Events -----
+  drop.addEventListener('click', () => file.click());
+  pickCamera.addEventListener('click', () => fileCam.click());
+  saveFolderBtn.addEventListener('click', saveToFolder);
+  downloadEachBtn.addEventListener('click', downloadEach);
+
+  file.addEventListener('change', e => { handleFiles(e.target.files); e.target.value = ''; });
+  fileCam.addEventListener('change', e => { handleFiles(e.target.files); e.target.value = ''; });
+
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('active'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('active'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault();
+    drop.classList.remove('active');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  processAllBtn.addEventListener('click', () => {
+    if (processing) return;
+    if (queue.some(q => q.status === 'pending')) return processQueue();
+    if (queue.some(q => q.status === 'done')) return downloadZip();
+    if (queue.some(q => q.status === 'error')) {
+      queue.forEach(q => { if (q.status === 'error') q.status = 'pending'; });
+      return processQueue();
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (processing) return;
+    queue = [];
+    clearLog();
+    render();
+  });
+})();
+</script>
+</body>
+</html>

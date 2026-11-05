@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0b">
+<meta name="description" content="What strip does with your files, and the terms you use it under.">
+<title>terms &amp; privacy — strip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --panel: #101012;
+    --panel-raised: #17171a;
+    --border: rgba(255, 255, 255, 0.085);
+    --border-strong: rgba(255, 255, 255, 0.17);
+    --text: #f3f3ee;
+    --text-dim: #a3a39b;
+    --text-muted: #77776f;
+    --accent: #d7ff4f;
+    --radius: 18px;
+    --radius-sm: 12px;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; }
+
+  body {
+    min-height: 100dvh;
+    padding:
+      max(32px, env(safe-area-inset-top))
+      max(24px, env(safe-area-inset-right))
+      max(48px, env(safe-area-inset-bottom))
+      max(24px, env(safe-area-inset-left));
+    background:
+      radial-gradient(900px 520px at 50% -12%, rgba(215, 255, 79, 0.09), transparent 62%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  ::selection { background: var(--accent); color: #0a0a0b; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+  a { color: inherit; }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand {
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.045em;
+    line-height: 1;
+    text-decoration: none;
+  }
+  .dot { color: var(--accent); }
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.18s ease;
+  }
+  .back:hover { color: var(--accent); }
+  .back svg { width: 12px; height: 12px; }
+
+  .doc { padding-top: clamp(40px, 7vh, 72px); }
+  h1 {
+    margin: 0;
+    font-size: clamp(38px, 6.4vw, 56px);
+    font-weight: 700;
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+  }
+  .meta {
+    margin: 16px 0 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .jump {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 28px;
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .jump a {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.18s ease;
+  }
+  .jump a:hover { color: var(--accent); }
+
+  section { scroll-margin-top: 24px; }
+  h2 {
+    margin: 56px 0 0;
+    font-size: clamp(26px, 3.4vw, 32px);
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+  }
+  h3 {
+    margin: 32px 0 0;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  p, ul {
+    max-width: 68ch;
+    margin: 14px 0 0;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+  ul { padding-left: 20px; }
+  li + li { margin-top: 8px; }
+  strong { color: var(--text); font-weight: 500; }
+  .doc a {
+    color: var(--text);
+    text-decoration: underline;
+    text-decoration-color: var(--border-strong);
+    text-underline-offset: 3px;
+    transition: color 0.18s ease, text-decoration-color 0.18s ease;
+  }
+  .doc a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+  .note {
+    margin-top: 56px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<main class="page">
+  <header class="topbar">
+    <a class="brand" href="hero.html">strip<span class="dot">.</span></a>
+    <a class="back" href="hero.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+      Back
+    </a>
+  </header>
+
+  <article class="doc">
+    <h1>Terms &amp; privacy</h1>
+    <p class="meta">Last updated 5 November 2026</p>
+
+    <nav class="jump" aria-label="Sections">
+      <a href="#privacy">Privacy</a>
+      <a href="#terms">Terms</a>
+    </nav>
+
+    <section id="privacy">
+      <h2>Privacy policy</h2>
+
+      <h3>Your images</h3>
+      <p>Images you choose are read by your browser and processed in memory on your device. They are never uploaded to a server. The cleaned files are written only where you send them: a folder you pick, individual downloads, or a ZIP your browser builds locally.</p>
+      <p>There is no account, no database, and no server-side copy. Closing the tab discards anything the page was holding.</p>
+
+      <h3>What the page requests</h3>
+      <p>The page is static HTML. It loads typefaces from Google Fonts and the ZIP library from cdnjs. Those providers receive the usual request data, such as your IP address and user agent, under their own privacy policies. Image data is never part of those requests.</p>
+
+      <h3>Cookies and storage</h3>
+      <p>No cookies, no analytics, no tracking pixels, no local storage. The camera profile you select is not remembered between sessions.</p>
+
+      <h3>Retention</h3>
+      <p>Nothing is retained. Files exist only in the browser tab and wherever you choose to save them.</p>
+    </section>
+
+    <section id="terms">
+      <h2>Terms of service</h2>
+
+      <h3>The tool</h3>
+      <p>strip removes image metadata and writes a camera-style EXIF profile. It is a local utility, provided free of charge. There is no guarantee that the output will be accepted as camera-originated by any particular platform, detection system, or person.</p>
+
+      <h3>Your responsibility</h3>
+      <p>You keep all rights to your images. By using the tool you confirm that you own them or have permission to alter them. You are responsible for how the output is used, and for complying with the laws, contracts, and platform rules that apply to you.</p>
+      <p>Do not use this tool for fraud, impersonation, evidence tampering, or any purpose that is illegal where you are.</p>
+
+      <h3>No warranty</h3>
+      <p>The tool is provided as is, without warranty of any kind. Results depend on the browser, the source file, and the processing steps. Metadata removal may be incomplete if a container or encoder behaves unexpectedly.</p>
+
+      <h3>Limitation of liability</h3>
+      <p>To the extent permitted by law, the operator is not liable for any loss or damage arising from use of the tool, including claims relating to the images you process or the way you use the output.</p>
+
+      <h3>Changes</h3>
+      <p>These terms may change as the tool changes. The date at the top of this page is the effective date of the current version.</p>
+    </section>
+
+    <p class="note">Questions about this page: contact the operator of this site.</p>
+  </article>
+</main>
+
+</body>
+</html>
