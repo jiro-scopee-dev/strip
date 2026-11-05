@@ -119,6 +119,10 @@ Download or clone the repository, then open `airemover.html` in a browser. That'
 
 Only process images you own or have permission to alter. Removing metadata is a privacy feature; using it to fake evidence, commit fraud, or impersonate someone is not. The tool is provided as is, with no guarantee that any platform or person will treat the output as authentic. See [the terms](legal.html#terms).
 
+## License
+
+[PolyForm Strict License 1.0.0](https://polyformproject.org/licenses/strict/1.0.0). Free to use for personal and other noncommercial purposes. Redistribution, modified versions, and commercial use are not permitted. Full text in [LICENSE](LICENSE).
+
 ---
 
 Built as a single-file hack that stayed single-file by design. If it saves you a batch of cleanup, the source is small enough to read in one sitting.
