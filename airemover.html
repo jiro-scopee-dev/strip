@@ -594,15 +594,164 @@
   const SOURCE_TYPE_MARKERS = ['trainedalgorithmicmedia','compositewithtrainedalgorithmicmedia','algorithmicmedia','digitalsourcetype','softwareagent'];
   const PROMPT_BLOCK_MARKERS = ['parameters','negative prompt','steps:','sampler:','cfg scale:','seed:','model hash:','workflow:{'];
 
+  // Lens aperture ladders, reused so every body gets realistic stops.
+  const F28 = [2.8, 3.2, 3.5, 4, 4.5, 5, 5.6, 6.3, 7.1, 8, 9, 10, 11, 13, 14, 16, 18, 20, 22];
+  const F25 = [2.5, 2.8, 3.2, 3.5, 4, 4.5, 5, 5.6, 6.3, 7.1, 8, 9, 10, 11, 13, 14, 16, 18, 20, 22, 32];
+  const F18 = [1.8, 2, 2.2, 2.5, 2.8, 3.2, 3.5, 4, 4.5, 5, 5.6, 6.3, 7.1, 8, 9, 10, 11, 13, 14, 16];
+  const F14 = [1.4, 1.6, 1.8, 2, 2.2, 2.5, 2.8, 3.2, 3.5, 4, 4.5, 5, 5.6, 6.3, 7.1, 8, 9, 10, 11, 13, 14, 16];
+  const F12 = [1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.5, 2.8, 3.2, 3.5, 4, 4.5, 5, 5.6, 6.3, 7.1, 8, 9, 10, 11, 13, 14, 16];
+
   const PROFILES = {
-    hasselblad: { make: "Hasselblad", model: "X2D 100C", software: "Adobe Photoshop Lightroom Classic 13.2 (Macintosh)", iso: 64, exposure: "1/250", aperture: "f/2.5" },
-    iphone: { make: "Apple", model: "iPhone 15 Pro Max", software: "17.4.1", iso: 50, exposure: "1/120", aperture: "f/1.78" },
-    samsung: { make: "Samsung", model: "SM-S928B", software: "S928BXXU1AXBA", iso: 40, exposure: "1/60", aperture: "f/1.7" },
-    pixel: { make: "Google", model: "Pixel 8 Pro", software: "HDR+ 1.0.621918735zd", iso: 45, exposure: "1/100", aperture: "f/1.68" },
-    sony: { make: "Sony", model: "ILCE-7RM5", software: "Adobe Photoshop Lightroom Classic 13.1", iso: 100, exposure: "1/500", aperture: "f/4.0" },
-    canon: { make: "Canon", model: "Canon EOS R5", software: "Digital Photo Professional 4.17.20", iso: 200, exposure: "1/800", aperture: "f/2.8" },
-    nikon: { make: "Nikon", model: "NIKON Z 8", software: "Ver.02.10", iso: 100, exposure: "1/400", aperture: "f/5.6" }
+    iphone: {
+      make: "Apple", model: "iPhone 15 Pro Max", software: "17.4.1", lensMake: "Apple",
+      serial: "", ev: [8, 15], program: [2],
+      isos: [25, 32, 40, 50, 64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000, 2500, 3200],
+      lenses: [
+        { name: "iPhone 15 Pro Max back triple camera 6.765mm f/1.78", focals: [6.765], crop: 3.55, maxAperture: 1.78, apertures: [1.78] },
+        { name: "iPhone 15 Pro Max back triple camera 2.22mm f/2.2", focals: [2.22], crop: 5.86, maxAperture: 2.2, apertures: [2.2] },
+        { name: "iPhone 15 Pro Max back triple camera 15.66mm f/2.8", focals: [15.66], crop: 7.66, maxAperture: 2.8, apertures: [2.8] }
+      ]
+    },
+    samsung: {
+      make: "Samsung", model: "SM-S928B", software: "S928BXXU1AXBA", lensMake: "Samsung",
+      serial: "", ev: [8, 15], program: [2],
+      isos: [25, 32, 40, 50, 64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000, 2500, 3200],
+      lenses: [
+        { name: "Samsung Galaxy S24 Ultra Rear Wide Camera", focals: [6.3], crop: 3.81, maxAperture: 1.7, apertures: [1.7] },
+        { name: "Samsung Galaxy S24 Ultra Rear Ultra Wide Camera", focals: [2.2], crop: 5.91, maxAperture: 2.2, apertures: [2.2] },
+        { name: "Samsung Galaxy S24 Ultra Rear Telephoto Camera", focals: [7.9], crop: 8.48, maxAperture: 2.4, apertures: [2.4] },
+        { name: "Samsung Galaxy S24 Ultra Rear Telephoto Camera", focals: [18.6], crop: 6.18, maxAperture: 3.4, apertures: [3.4] }
+      ]
+    },
+    pixel: {
+      make: "Google", model: "Pixel 8 Pro", software: "HDR+ 1.0.621918735zd", lensMake: "Google",
+      serial: "", ev: [8, 15], program: [2],
+      isos: [25, 32, 40, 50, 64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000, 2500, 3200],
+      lenses: [
+        { name: "Pixel 8 Pro back camera 6.9mm f/1.68", focals: [6.9], crop: 3.48, maxAperture: 1.68, apertures: [1.68] },
+        { name: "Pixel 8 Pro back camera 2.35mm f/2.2", focals: [2.35], crop: 5.53, maxAperture: 2.2, apertures: [2.2] },
+        { name: "Pixel 8 Pro back camera 19.0mm f/2.8", focals: [19.0], crop: 5.95, maxAperture: 2.8, apertures: [2.8] }
+      ]
+    },
+    sony: {
+      make: "Sony", model: "ILCE-7RM5", software: "Adobe Photoshop Lightroom Classic 13.1 (Windows)", lensMake: "Sony",
+      serial: "0276543", ev: [7, 15], program: [1, 2, 3],
+      isos: [100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800],
+      lenses: [
+        { name: "FE 24-70mm F2.8 GM II", serial: "1812345678", focals: [24, 28, 35, 40, 50, 60, 70], crop: 1, maxAperture: 2.8, apertures: F28 },
+        { name: "FE 35mm F1.4 GM", serial: "1802345679", focals: [35], crop: 1, maxAperture: 1.4, apertures: F14 },
+        { name: "FE 70-200mm F2.8 GM OSS II", serial: "1803456780", focals: [70, 85, 100, 120, 135, 150, 180, 200], crop: 1, maxAperture: 2.8, apertures: F28 },
+        { name: "FE 16-35mm F2.8 GM II", serial: "1804567891", focals: [16, 20, 24, 28, 35], crop: 1, maxAperture: 2.8, apertures: F28 }
+      ]
+    },
+    canon: {
+      make: "Canon", model: "Canon EOS R5", software: "Digital Photo Professional 4.17.20", lensMake: "Canon",
+      serial: "032021000456", ev: [7, 15], program: [1, 2, 3],
+      isos: [100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800, 25600],
+      lenses: [
+        { name: "RF24-70mm F2.8 L IS USM", serial: "0000123456", focals: [24, 28, 35, 40, 50, 60, 70], crop: 1, maxAperture: 2.8, apertures: F28 },
+        { name: "RF50mm F1.2 L USM", serial: "0000234567", focals: [50], crop: 1, maxAperture: 1.2, apertures: F12 },
+        { name: "RF70-200mm F2.8 L IS USM", serial: "0000345678", focals: [70, 85, 100, 135, 150, 200], crop: 1, maxAperture: 2.8, apertures: F28 },
+        { name: "RF15-35mm F2.8 L IS USM", serial: "0000456789", focals: [15, 20, 24, 28, 35], crop: 1, maxAperture: 2.8, apertures: F28 }
+      ]
+    },
+    nikon: {
+      make: "Nikon", model: "NIKON Z 8", software: "Ver.02.10", lensMake: "Nikon",
+      serial: "6001234", ev: [7, 15], program: [1, 2, 3],
+      isos: [64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800, 25600],
+      lenses: [
+        { name: "NIKKOR Z 24-70mm f/2.8 S", serial: "20123456", focals: [24, 28, 35, 40, 50, 60, 70], crop: 1, maxAperture: 2.8, apertures: F28 },
+        { name: "NIKKOR Z 50mm f/1.8 S", serial: "20234567", focals: [50], crop: 1, maxAperture: 1.8, apertures: F18 },
+        { name: "NIKKOR Z 70-200mm f/2.8 VR S", serial: "20345678", focals: [70, 85, 100, 135, 150, 200], crop: 1, maxAperture: 2.8, apertures: F28 }
+      ]
+    },
+    hasselblad: {
+      make: "Hasselblad", model: "X2D 100C", software: "Adobe Photoshop Lightroom Classic 13.2 (Macintosh)", lensMake: "Hasselblad",
+      serial: "SN1234567", ev: [7, 15], program: [1, 2, 3],
+      isos: [64, 100, 200, 400, 800, 1600, 3200, 6400],
+      lenses: [
+        { name: "XCD 55V", serial: "8V123456", focals: [55], crop: 0.79, maxAperture: 2.5, apertures: F25 },
+        { name: "XCD 38V", serial: "8V234567", focals: [38], crop: 0.79, maxAperture: 2.5, apertures: F25 },
+        { name: "XCD 90V", serial: "8V345678", focals: [90], crop: 0.79, maxAperture: 2.5, apertures: F25 }
+      ]
+    }
   };
+
+  const SHUTTERS = [1/8000, 1/6400, 1/5000, 1/4000, 1/3200, 1/2500, 1/2000, 1/1600, 1/1250, 1/1000, 1/800, 1/640, 1/500, 1/400, 1/320, 1/250, 1/200, 1/160, 1/125, 1/100, 1/80, 1/60, 1/50, 1/40, 1/30, 1/25, 1/20, 1/15, 1/13, 1/10, 1/8, 1/6, 1/5, 1/4, 1/3, 1/2];
+  const TIME_OFFSETS = ["+00:00", "+01:00", "+02:00", "+03:00", "-04:00", "-05:00", "-07:00", "-08:00", "+08:00", "+09:00", "+10:00"];
+  const pad2 = n => String(n).padStart(2, '0');
+  const shutterLabel = t => t >= 1 ? `${t}s` : `1/${Math.round(1 / t)}`;
+
+  function snapShutter(t) {
+    t = Math.min(1 / 2, Math.max(1 / 8000, t));
+    let best = SHUTTERS[0];
+    let bestErr = Infinity;
+    for (const s of SHUTTERS) {
+      const err = Math.abs(Math.log2(s) - Math.log2(t));
+      if (err < bestErr) { bestErr = err; best = s; }
+    }
+    return best;
+  }
+
+  // 30 distinct combinations per body. Exposure is derived from a scene EV so
+  // aperture, shutter and ISO stay physically consistent with each other.
+  function makeVariants(profile) {
+    const variants = [];
+    for (let i = 0; i < 30; i++) {
+      const lens = profile.lenses[i % profile.lenses.length];
+      const aperture = lens.apertures[(i * 11) % lens.apertures.length];
+      const iso = profile.isos[(i * 7) % profile.isos.length];
+      const ev = profile.ev[0] + ((i * 5) % (profile.ev[1] - profile.ev[0] + 1));
+      const shutter = snapShutter((aperture * aperture) / (Math.pow(2, ev) * iso / 100));
+      const focal = lens.focals[(i * 3) % lens.focals.length];
+      const when = new Date(Date.now() - ((i * 2654435761) % 730) * 86400000);
+      when.setHours(7 + ((i * 3) % 14), (i * 17) % 60, (i * 29) % 60, 0);
+      variants.push({
+        make: profile.make,
+        model: profile.model,
+        software: profile.software,
+        lensMake: profile.lensMake,
+        serial: profile.serial,
+        lensSerial: lens.serial || "",
+        lensName: lens.name,
+        lensMin: lens.focals[0],
+        lensMax: lens.focals[lens.focals.length - 1],
+        maxAperture: lens.maxAperture,
+        focal,
+        focal35: Math.round(focal * lens.crop),
+        aperture,
+        iso,
+        shutter,
+        program: profile.program[(i * 2) % profile.program.length],
+        dateTime: `${when.getFullYear()}:${pad2(when.getMonth() + 1)}:${pad2(when.getDate())} ${pad2(when.getHours())}:${pad2(when.getMinutes())}:${pad2(when.getSeconds())}`,
+        offset: TIME_OFFSETS[i % TIME_OFFSETS.length],
+        subsec: String((i * 373) % 1000).padStart(3, '0'),
+        uniqueId: Array.from({ length: 32 }, () => '0123456789ABCDEF'[Math.floor(Math.random() * 16)]).join('')
+      });
+    }
+    return variants;
+  }
+
+  function shuffle(list) {
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    return list;
+  }
+
+  // Dealt one per file; an exhausted pool reshuffles, so a batch rotates
+  // through all 30 and the next batch starts from a new order.
+  const pools = new Map();
+
+  function nextVariant(profileKey) {
+    let pool = pools.get(profileKey);
+    if (!pool || !pool.length) {
+      pool = shuffle(makeVariants(PROFILES[profileKey]));
+      pools.set(profileKey, pool);
+    }
+    return pool.pop();
+  }
 
   function checkLikeIG(bytes) {
     const text = new TextDecoder('latin1').decode(bytes);
@@ -630,96 +779,173 @@
     return { level: 'clean', label: 'Clean' };
   }
 
-  // IFD0 with ASCII strings + SHORT values. Entries are sorted by tag, which
-  // strict EXIF readers require.
-  function buildEXIF(profile) {
-    const dateTime = "2024:05:14 14:32:11\0";
-    const strings = [
-      [0x010F, profile.make + "\0"],
-      [0x0110, profile.model + "\0"],
-      [0x0131, profile.software + "\0"],
-      [0x0132, dateTime],
-      [0x829A, profile.exposure + "\0"],
-      [0x829D, profile.aperture + "\0"],
-      // shortcut: lives in IFD0 instead of the Exif sub-IFD; some strict readers ignore it.
-      [0x9003, dateTime]
-    ];
-    const shorts = [
-      [0x8827, profile.iso],
-      [0xA002, 4000],
-      [0xA003, 3000]
-    ];
-    const count = strings.length + shorts.length;
-    let dataOffset = 8 + 2 + count * 12 + 4;
+  // ----- EXIF writer -----
+  // IFD0 + Exif sub-IFD, little-endian, entries sorted by tag. Supports every
+  // value type a camera JPEG needs: ASCII, SHORT, LONG, RATIONAL, SRATIONAL
+  // and UNDEFINED.
+  const T_ASCII = 2, T_SHORT = 3, T_LONG = 4, T_RATIONAL = 5, T_UNDEFINED = 7, T_SRATIONAL = 10;
+  const TYPE_SIZE = { 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 10: 8 };
 
-    const entries = [];
-    const blobs = [];
-
-    for (const [tag, value] of strings) {
-      const entry = new Uint8Array(12);
-      const dv = new DataView(entry.buffer);
-      dv.setUint16(0, tag, true);
-      dv.setUint16(2, 2, true); // ASCII
-      dv.setUint32(4, value.length, true);
-      if (value.length <= 4) {
-        for (let i = 0; i < value.length; i++) entry[8 + i] = value.charCodeAt(i);
-      } else {
-        dv.setUint32(8, dataOffset, true);
-        const bytes = new Uint8Array(value.length);
-        for (let i = 0; i < value.length; i++) bytes[i] = value.charCodeAt(i);
-        blobs.push(bytes);
-        dataOffset += bytes.length;
+  function encodeValue(type, value) {
+    if (type === T_ASCII) {
+      const bytes = new Uint8Array(value.length + 1);
+      for (let i = 0; i < value.length; i++) bytes[i] = value.charCodeAt(i) & 0xFF;
+      return bytes;
+    }
+    if (type === T_UNDEFINED) {
+      const bytes = new Uint8Array(value.length);
+      for (let i = 0; i < value.length; i++) {
+        bytes[i] = (typeof value === 'string' ? value.charCodeAt(i) : value[i]) & 0xFF;
       }
-      entries.push([tag, entry]);
+      return bytes;
     }
+    const bytes = new Uint8Array(value.length * TYPE_SIZE[type]);
+    const dv = new DataView(bytes.buffer);
+    value.forEach((v, i) => {
+      if (type === T_SHORT) dv.setUint16(i * 2, v, true);
+      else if (type === T_LONG) dv.setUint32(i * 4, v, true);
+      else {
+        dv.setUint32(i * 8, v[0] >>> 0, true);
+        dv.setUint32(i * 8 + 4, v[1] >>> 0, true);
+      }
+    });
+    return bytes;
+  }
 
-    for (const [tag, value] of shorts) {
-      const entry = new Uint8Array(12);
-      const dv = new DataView(entry.buffer);
-      dv.setUint16(0, tag, true);
-      dv.setUint16(2, 3, true); // SHORT
-      dv.setUint32(4, 1, true);
-      dv.setUint16(8, value, true);
-      entries.push([tag, entry]);
+  function planIFD(entries) {
+    const items = entries.map(([tag, type, value]) => {
+      const bytes = encodeValue(type, value);
+      return { tag, type, bytes, count: type === T_ASCII || type === T_UNDEFINED ? bytes.length : value.length };
+    }).sort((a, b) => a.tag - b.tag);
+    let dataSize = 0;
+    for (const item of items) {
+      if (item.bytes.length > 4) dataSize += item.bytes.length + (item.bytes.length & 1);
     }
+    return { items, size: 2 + items.length * 12 + 4, dataSize };
+  }
 
-    entries.sort((a, b) => a[0] - b[0]);
+  function writeIFD(items, ifdOffset, dataOffset, dv, out) {
+    dv.setUint16(ifdOffset, items.length, true);
+    let ptr = dataOffset;
+    items.forEach((item, i) => {
+      const at = ifdOffset + 2 + i * 12;
+      dv.setUint16(at, item.tag, true);
+      dv.setUint16(at + 2, item.type, true);
+      dv.setUint32(at + 4, item.count, true);
+      if (item.bytes.length <= 4) {
+        out.set(item.bytes, at + 8);
+      } else {
+        dv.setUint32(at + 8, ptr, true);
+        out.set(item.bytes, ptr);
+        ptr += item.bytes.length + (item.bytes.length & 1);
+      }
+    });
+    dv.setUint32(ifdOffset + 2 + items.length * 12, 0, true);
+  }
 
-    const tiff = new Uint8Array(8);
-    const tdv = new DataView(tiff.buffer);
-    tdv.setUint16(0, 0x4949, false); // little-endian
-    tdv.setUint16(2, 42, true);
-    tdv.setUint32(4, 8, true);
+  function buildTIFF(ifd0Entries, exifEntries) {
+    const ifd0 = planIFD(ifd0Entries);
+    const exif = planIFD(exifEntries);
+    const ifd0Size = 2 + (ifd0.items.length + 1) * 12 + 4;
+    const exifOffset = 8 + ifd0Size + ifd0.dataSize;
+    const exifDataOffset = exifOffset + exif.size;
+    const out = new Uint8Array(exifDataOffset + exif.dataSize);
+    const dv = new DataView(out.buffer);
+    dv.setUint16(0, 0x4949, true); // "II", little-endian
+    dv.setUint16(2, 42, true);
+    dv.setUint32(4, 8, true);
+    writeIFD(planIFD([...ifd0Entries, [0x8769, T_LONG, [exifOffset]]]).items, 8, 8 + ifd0Size, dv, out);
+    writeIFD(exif.items, exifOffset, exifDataOffset, dv, out);
+    return out;
+  }
 
-    const ifd = new Uint8Array(2 + count * 12 + 4);
-    const idv = new DataView(ifd.buffer);
-    idv.setUint16(0, count, true);
-    entries.forEach(([, entry], i) => ifd.set(entry, 2 + i * 12));
-    idv.setUint32(2 + count * 12, 0, true); // no next IFD
+  const rationalOf = x => [Math.round(x * 1000), 1000];
+  const shutterRational = t => [1, Math.round(1 / t)];
 
-    const out = new Uint8Array(tiff.length + ifd.length + blobs.reduce((n, b) => n + b.length, 0));
-    out.set(tiff, 0);
-    out.set(ifd, tiff.length);
-    let ptr = tiff.length + ifd.length;
-    for (const blob of blobs) {
-      out.set(blob, ptr);
-      ptr += blob.length;
-    }
+  function buildEXIF(shot, width, height) {
+    const dt = shot.dateTime;
+    const exif = [
+      [0x829A, T_RATIONAL, [shutterRational(shot.shutter)]],
+      [0x829D, T_RATIONAL, [[Math.round(shot.aperture * 100), 100]]],
+      [0x8822, T_SHORT, [shot.program]],
+      [0x8827, T_SHORT, [shot.iso]],
+      [0x8830, T_SHORT, [2]],
+      [0x8832, T_LONG, [shot.iso]],
+      [0x9000, T_UNDEFINED, "0232"],
+      [0x9003, T_ASCII, dt],
+      [0x9004, T_ASCII, dt],
+      [0x9010, T_ASCII, shot.offset],
+      [0x9011, T_ASCII, shot.offset],
+      [0x9012, T_ASCII, shot.offset],
+      [0x9201, T_SRATIONAL, [[Math.round(-Math.log2(shot.shutter) * 1000), 1000]]],
+      [0x9202, T_RATIONAL, [rationalOf(2 * Math.log2(shot.aperture))]],
+      [0x9204, T_SRATIONAL, [[0, 1]]],
+      [0x9205, T_RATIONAL, [rationalOf(2 * Math.log2(shot.maxAperture))]],
+      [0x9207, T_SHORT, [5]],
+      [0x9208, T_SHORT, [0]],
+      [0x9209, T_SHORT, [16]],
+      [0x920A, T_RATIONAL, [rationalOf(shot.focal)]],
+      [0x9290, T_ASCII, shot.subsec],
+      [0x9291, T_ASCII, shot.subsec],
+      [0x9292, T_ASCII, shot.subsec],
+      [0xA000, T_UNDEFINED, "0100"],
+      [0xA001, T_SHORT, [1]],
+      [0xA002, T_LONG, [width]],
+      [0xA003, T_LONG, [height]],
+      [0xA300, T_UNDEFINED, [3]],
+      [0xA301, T_UNDEFINED, [1]],
+      [0xA401, T_SHORT, [0]],
+      [0xA402, T_SHORT, [0]],
+      [0xA403, T_SHORT, [0]],
+      [0xA404, T_RATIONAL, [[1, 1]]],
+      [0xA405, T_SHORT, [shot.focal35]],
+      [0xA406, T_SHORT, [0]],
+      [0xA408, T_SHORT, [0]],
+      [0xA409, T_SHORT, [0]],
+      [0xA40A, T_SHORT, [0]],
+      [0xA40C, T_SHORT, [0]],
+      [0xA420, T_ASCII, shot.uniqueId],
+      [0xA432, T_RATIONAL, [
+        [Math.round(shot.lensMin * 10), 10],
+        [Math.round(shot.lensMax * 10), 10],
+        [Math.round(shot.maxAperture * 10), 10],
+        [Math.round(shot.maxAperture * 10), 10]
+      ]],
+      [0xA433, T_ASCII, shot.lensMake],
+      [0xA434, T_ASCII, shot.lensName]
+    ];
+    if (shot.serial) exif.push([0xA431, T_ASCII, shot.serial]);
+    if (shot.lensSerial) exif.push([0xA435, T_ASCII, shot.lensSerial]);
 
+    const ifd0 = [
+      [0x0100, T_LONG, [width]],
+      [0x0101, T_LONG, [height]],
+      [0x010F, T_ASCII, shot.make],
+      [0x0110, T_ASCII, shot.model],
+      [0x0112, T_SHORT, [1]],
+      [0x011A, T_RATIONAL, [[72, 1]]],
+      [0x011B, T_RATIONAL, [[72, 1]]],
+      [0x0128, T_SHORT, [2]],
+      [0x0131, T_ASCII, shot.software],
+      [0x0132, T_ASCII, dt],
+      [0x0213, T_SHORT, [1]]
+    ];
+
+    const tiff = buildTIFF(ifd0, exif);
     const header = "Exif\0\0";
-    const app1 = new Uint8Array(4 + header.length + out.length);
+    const app1 = new Uint8Array(4 + header.length + tiff.length);
     const adv = new DataView(app1.buffer);
     adv.setUint16(0, 0xFFE1, false);
-    adv.setUint16(2, 2 + header.length + out.length, false);
+    adv.setUint16(2, 2 + header.length + tiff.length, false);
     for (let i = 0; i < header.length; i++) app1[4 + i] = header.charCodeAt(i);
-    app1.set(out, 4 + header.length);
+    app1.set(tiff, 4 + header.length);
     return app1;
   }
 
-  async function injectExif(jpegBlob, profileKey) {
+  async function injectExif(jpegBlob, shot, width, height) {
     const bytes = new Uint8Array(await jpegBlob.arrayBuffer());
     if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) throw new Error('not a jpeg');
-    const exif = buildEXIF(PROFILES[profileKey] || PROFILES.iphone);
+    const exif = buildEXIF(shot, width, height);
     const out = new Uint8Array(bytes.length + exif.length);
     out.set(bytes.subarray(0, 2), 0);
     out.set(exif, 2);
@@ -906,9 +1132,10 @@
 
         const tempJpeg = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.95));
         if (!tempJpeg) throw new Error('could not encode this image');
-        item.cleanJpeg = await injectExif(tempJpeg, targetProfile);
+        const shot = nextVariant(targetProfile);
+        item.cleanJpeg = await injectExif(tempJpeg, shot, img.width, img.height);
         item.status = 'done';
-        log(`Spoofed ${item.name}`, 'success');
+        log(`Spoofed ${item.name} — f/${shot.aperture} · ${shutterLabel(shot.shutter)} · ISO ${shot.iso}`, 'success');
       } catch (e) {
         item.status = 'error';
         const reason = e.message === 'decode error' ? 'could not read this image' : e.message;

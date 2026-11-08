@@ -82,7 +82,9 @@ So the honest answer to "which models can it bypass": it removes the metadata si
 | `nikon` | Nikon Z8 |
 | `hasselblad` | Hasselblad X2D 100C |
 
-Each profile writes make, model, software, capture date, exposure, aperture, ISO, and pixel dimensions. Some strict readers will show only the make and model.
+Each profile writes a full EXIF block: make, model, software, body and lens serials, lens model and specification, focal length and 35 mm equivalent, exposure time, aperture, ISO, exposure program, metering mode, flash, white balance, colour space, capture date with sub-seconds and timezone, pixel dimensions, and a unique image ID.
+
+Every body carries 30 distinct setting combinations. The pool is shuffled and dealt one combination per file, then reshuffled when it runs out, so a batch never repeats the same exposure and a new run starts from a new order.
 
 ## Run it
 
@@ -107,6 +109,7 @@ Download or clone the repository, then open `airemover.html` in a browser. That'
 | `legal.html` | Terms and privacy |
 | `DESIGN.md` | The visual system, for future edits |
 | `AGENTS.md` | Repo note for agents |
+| `test-exif.mjs` | EXIF writer self-check (`node test-exif.mjs`) |
 
 ## Known quirks
 
